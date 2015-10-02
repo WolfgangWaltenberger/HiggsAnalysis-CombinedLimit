@@ -30,11 +30,13 @@ protected:
 private:
   float getLikelihood ( RooWorkspace *, const RooStats::ModelConfig *, 
                  RooAbsData &, float r ) const ;
+  /// integrate out signal strength mu
+  float signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig *mc_s, 
+                 RooAbsData &, float max ) const;
 
   //true: nuisances are marginalized, false: nuisances are treated w/ CascadeMinimizer
-  static bool marginalizeNuisances_;
-  //maximum signal strength
-  static float mumax_;
+  static bool  marginalizeNuisances_;
+  static float muMax_; //maximum signal strength that we scan
 };
 
 
