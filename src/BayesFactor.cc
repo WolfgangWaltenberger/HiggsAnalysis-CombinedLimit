@@ -65,10 +65,11 @@ float BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig
   rrv->setMin ( 0. );
   rrv->setMax ( max );
   RooAbsPdf * sigpdf = mc_s->GetPdf();
-  RooAbsReal * nll = sigpdf->createNLL ( data );
-  CascadeMinimizer minim(*nll, CascadeMinimizer::Constrained);
+  RooAbsReal * nll = sigpdf->createNLL ( data, RooFit::Constrain ( *nuisances ) );
+  CascadeMinimizer minim(*nll, CascadeMinimizer::Constrained );
   minim.setNuisanceParameters ( nuisances );
   minim.minimize( 0 );
+  /*
   RooAbsPdf * projectedpdf = sigpdf->createProjection ( *rrv );
   const RooArgSet * observables = w->set( "observables" );
   float ret = projectedpdf->getVal( *observables);
@@ -79,7 +80,7 @@ float BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig
     // the last bin doesnt contribute anymore to the mean likelihood!
     cout << "[BayesFactor::signalIntegralOverMu] llhd of last mu bin is very small:"
          << llhdedge <<"<"<< minllhd << endl;
-    cout << "[BayesFactor::signalIntegralOverMu] consider a smaller value for " << muMax_ << endl;
+    cout << "[BayesFactor::signalIntegralOverMu] consider a smaller value for mumax: " << muMax_ << endl;
   }
   float maxllhd = 0.01 * ret;
   if ( llhdedge > maxllhd )
@@ -88,32 +89,46 @@ float BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig
     // mean likelihood!
     cout << "[BayesFactor::signalIntegralOverMu] llhd of last mu bin is still large: "
          << llhdedge << ">" << maxllhd << "." << endl;
-    cout << "[BayesFactor::signalIntegralOverMu] consider a higher value for " << muMax_ << endl;
+    cout << "[BayesFactor::signalIntegralOverMu] consider a higher value for mumax: " << muMax_ << endl;
   }
-  return ret;
-
-  /*
+  */
   float sum = 0.;
-  float maxllhd=-1.;
-  int maxllhdindex=-1;
-  vector < float > llhds ( nStepsMu_ );
+  //float mmaxllhd=-1.;
+  // int maxllhdindex=-1;
+  int nStepsMu_ = 20;
+  float min = 0.;
+  float lastllhd = 0.;
   for ( int i = 0; i < nStepsMu_; i++ )
   {
     float mu = min + (max-min) * float(i) / (nStepsMu_-1);
-    float sigllhd = this->getLikelihood ( w, mc_s, data, mu );
-    cout << "[BayesFactor] mu=" << mu << " llhd=" << sigllhd << endl;
-    sum += sigllhd;
-    llhds.push_back ( sigllhd );
-    if ( sigllhd > maxllhd )
+    lastllhd = this->getLikelihood ( w, mc_s, data, mu );
+    // cout << "[BayesFactor] mu=" << mu << " llhd=" << sigllhd << endl;
+    sum += lastllhd;
+    /*
+    if ( lastllhd > maxllhd )
     {
-      maxllhd=sigllhd;
+      //mmaxllhd=sigllhd;
       maxllhdindex=i;
-    }
+    }*/
   }
-  cout << "[BayesFactor] maximum at " << maxllhdindex << endl;
   float sigllhd = sum / nStepsMu_;
-  cout << "[BayesFactor] projected = " << ret << " min=" << minrange << endl;
-  */
+  float maxl=0.01 * sigllhd;
+
+  if ( lastllhd > maxl )
+  {
+    cout << "[BayesFactor] the llhd of last mu bin is very large: " << lastllhd << ">"
+         << maxl << ". Consider choosing a larger mumax value." << endl;
+  }
+  float minl=1e-10 * sigllhd;
+  if ( lastllhd < minl )
+  {
+    cout << "[BayesFactor] the llhd of the last mu bin is very small: " << lastllhd 
+         << "<" << minl << ". Consider choosing a smaller mumax value." << endl;
+  }
+
+ // cout << "[BayesFactor] maximum at " << maxllhdindex << endl;
+  cout << "[BayesFactor] sigllhd=" << sigllhd << endl;
+  return sigllhd;
 }
 
 bool BayesFactor::run(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStats::ModelConfig *mc_b, RooAbsData &data, double &limit, double &limitErr, const double *hint) {
