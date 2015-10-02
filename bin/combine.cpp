@@ -25,6 +25,7 @@
 #include "../interface/CascadeMinimizer.h"
 #include "../interface/ProfilingTools.h"
 #include "../interface/GenerateOnly.h"
+#include "../interface/BayesFactor.h"
 #include <map>
 
 using namespace std;
@@ -54,6 +55,7 @@ int main(int argc, char **argv) {
   algo = new HybridNew();  methods.insert(make_pair(algo->name(), algo));
   algo = new FeldmanCousins();  methods.insert(make_pair(algo->name(), algo));
   algo = new MaxLikelihoodFit();  methods.insert(make_pair(algo->name(), algo));
+  algo = new BayesFactor();  methods.insert(make_pair(algo->name(), algo));
   algo = new Asymptotic();  methods.insert(make_pair(algo->name(), algo));
   algo = new AsymptoticNew();  methods.insert(make_pair(algo->name(), algo));
   algo = new GoodnessOfFit();  methods.insert(make_pair(algo->name(), algo));
