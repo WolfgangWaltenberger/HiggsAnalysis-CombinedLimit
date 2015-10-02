@@ -13,6 +13,7 @@
 #include "../interface/ProfileLikelihood.h"
 #include "../interface/HybridNew.h"
 #include "../interface/BayesianFlatPrior.h"
+#include "../interface/BayesFactor.h"
 #include "../interface/BayesianToyMC.h"
 #include "../interface/MarkovChainMC.h"
 #include "../interface/FeldmanCousins.h"
@@ -49,6 +50,7 @@ int main(int argc, char **argv) {
   map<string, LimitAlgo *> methods;
   algo = new ProfileLikelihood(); methods.insert(make_pair(algo->name(), algo));
   algo = new BayesianFlatPrior(); methods.insert(make_pair(algo->name(), algo));
+  algo = new BayesFactor(); methods.insert(make_pair(algo->name(), algo));
   algo = new BayesianToyMC(); methods.insert(make_pair(algo->name(), algo));
   algo = new MarkovChainMC();  methods.insert(make_pair(algo->name(), algo));
   algo = new HybridNew();  methods.insert(make_pair(algo->name(), algo));
