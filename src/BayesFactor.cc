@@ -118,14 +118,16 @@ pair < float, float > BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooSt
 
   if ( lastllhd > maxl )
   {
-    cout << "[BayesFactor] the llhd of last mu bin is very large: " << lastllhd << ">"
-         << maxl << ". Consider choosing a larger mumax value." << endl;
+    cout << "[BayesFactor:error] the llhd of last mu bin is very large: "
+         << lastllhd << ">" << maxl << ". Consider choosing a larger mumax value." 
+         << endl;
   }
   float minl=1e-10 * sigllhd;
   if ( lastllhd < minl )
   {
-    cout << "[BayesFactor] the llhd of the last mu bin is very small: " << lastllhd
-         << "<" << minl << ". Consider choosing a smaller mumax value." << endl;
+    cout << "[BayesFactor:error] the llhd of the last mu bin is very small: " 
+         << lastllhd << "<" << minl << ". Consider choosing a smaller mumax value." 
+         << endl;
   }
 
   // cout << "[BayesFactor] maximum at " << maxllhdindex << endl;
@@ -149,7 +151,7 @@ bool BayesFactor::run(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStats::Mo
   float bgllhd = this->getLikelihood ( w, mc_b, data, -1 );
   if (bgOnly_)
   {
-    cout << "[BayesFactor] bgllhd=" << bgllhd << endl;
+    cout << "[BayesFactor:result] bgllhd=" << bgllhd << endl;
     limit=bgllhd;
     return true;
   }
@@ -158,7 +160,7 @@ bool BayesFactor::run(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStats::Mo
   float maxllhd = sig.second;
   limit=log ( sigllhd/bgllhd );
   float significance = sqrt ( 2*log ( maxllhd / bgllhd ) );
-  cout << "[BayesFactor] bgllhd=" << bgllhd << ", signal=" << sigllhd 
+  cout << "[BayesFactor:result] bgllhd=" << bgllhd << ", signal=" << sigllhd 
        << ", maxsigllhd=" << maxllhd << ", lnK=" << limit 
        << ", sig=" << significance << endl;
   limitErr=0;
