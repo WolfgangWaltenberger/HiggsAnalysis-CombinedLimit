@@ -10,6 +10,7 @@ using namespace RooStats;
 using namespace std;
 
 bool  BayesFactor::marginalizeNuisances_ = false;
+bool  BayesFactor::bgOnly_ = false;
 float BayesFactor::muMax_ = 2.0;
 
 BayesFactor::BayesFactor() :
@@ -17,25 +18,28 @@ BayesFactor::BayesFactor() :
 {
   options_.add_options()
   ("marginalizeNuisances",  "Marginalize nuisances instead of using the cascade minimizer")
+  ("bgOnly",  "Compute background likelihood only")
+//  ("addDatacard",        boost::program_options::value<string>(&muMax_)->default_value(muMax_), "maximum value of signal strength mu that is scanned");
   ("muMax",        boost::program_options::value<float>(&muMax_)->default_value(muMax_), "maximum value of signal strength mu that is scanned");
 }
 
 BayesFactor::~BayesFactor(){
 }
 
-void BayesFactor::applyOptions(const boost::program_options::variables_map &vm) 
+void BayesFactor::applyOptions(const boost::program_options::variables_map &vm)
 {
-  marginalizeNuisances_ = vm.count("marginalizeNuisances"); 
+  marginalizeNuisances_ = vm.count("marginalizeNuisances");
+  bgOnly_ = vm.count("bgOnly");
 }
 
-float BayesFactor::getLikelihood ( RooWorkspace * w, 
+float BayesFactor::getLikelihood ( RooWorkspace * w,
     const RooStats::ModelConfig * mc, RooAbsData & data, float r ) const
 {
   const RooArgSet * nuisances = w->set( "nuisances" );
   const RooArgSet * observables = w->set( "observables" );
   if ( r >= 0. )
   {
-    RooRealVar * rrv = w->var("r"); 
+    RooRealVar * rrv = w->var("r");
     rrv->setVal ( r );
     rrv->setConstant ( true );
   }
@@ -58,9 +62,9 @@ float BayesFactor::getLikelihood ( RooWorkspace * w,
   return ret;
 }
 
-float BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig *mc_s, RooAbsData & data, float max ) const
+pair < float, float > BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig *mc_s, RooAbsData & data, float max ) const
 {
-  RooRealVar * rrv = w->var("r"); 
+  RooRealVar * rrv = w->var("r");
   const RooArgSet * nuisances = w->set( "nuisances" );
   rrv->setMin ( 0. );
   rrv->setMax ( max );
@@ -93,7 +97,7 @@ float BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig
   }
   */
   float sum = 0.;
-  //float mmaxllhd=-1.;
+  float mmaxllhd=-1.;
   // int maxllhdindex=-1;
   int nStepsMu_ = 20;
   float min = 0.;
@@ -104,12 +108,10 @@ float BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig
     lastllhd = this->getLikelihood ( w, mc_s, data, mu );
     // cout << "[BayesFactor] mu=" << mu << " llhd=" << sigllhd << endl;
     sum += lastllhd;
-    /*
-    if ( lastllhd > maxllhd )
+    if ( lastllhd > mmaxllhd )
     {
-      //mmaxllhd=sigllhd;
-      maxllhdindex=i;
-    }*/
+      mmaxllhd=lastllhd;
+    }
   }
   float sigllhd = sum / nStepsMu_;
   float maxl=0.01 * sigllhd;
@@ -122,20 +124,43 @@ float BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig
   float minl=1e-10 * sigllhd;
   if ( lastllhd < minl )
   {
-    cout << "[BayesFactor] the llhd of the last mu bin is very small: " << lastllhd 
+    cout << "[BayesFactor] the llhd of the last mu bin is very small: " << lastllhd
          << "<" << minl << ". Consider choosing a smaller mumax value." << endl;
   }
 
- // cout << "[BayesFactor] maximum at " << maxllhdindex << endl;
-  cout << "[BayesFactor] sigllhd=" << sigllhd << endl;
-  return sigllhd;
+  // cout << "[BayesFactor] maximum at " << maxllhdindex << endl;
+  // cout << "[BayesFactor] sigllhd=" << sigllhd << endl;
+  return pair < float, float > ( sigllhd, mmaxllhd );
 }
+
+/*
+void BayesFactor::computeSignalStrength ( RooStats::ModelConfig *mc_s, RooAbsData &data ) const
+{
+    RooFitResult * res_s = mc_s->GetPdf()->fitTo(data,
+    RooFit::Save(1),
+    RooFit::Minimizer(ROOT::Math::MinimizerOptions::DefaultMinimizerType().c_str(), ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo().c_str()),
+    RooFit::Strategy(minimizerStrategy_),
+    RooFit::Extended(mc_s->GetPdf()->canBeExtended()),
+    constCmdArg_s, minosCmdArg);
+       
+};*/
 
 bool BayesFactor::run(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStats::ModelConfig *mc_b, RooAbsData &data, double &limit, double &limitErr, const double *hint) {
   float bgllhd = this->getLikelihood ( w, mc_b, data, -1 );
-  float sigllhd = this->signalIntegralOverMu ( w, mc_s, data, muMax_ );
+  if (bgOnly_)
+  {
+    cout << "[BayesFactor] bgllhd=" << bgllhd << endl;
+    limit=bgllhd;
+    return true;
+  }
+  pair <float,float> sig = this->signalIntegralOverMu ( w, mc_s, data, muMax_ );
+  float sigllhd = sig.first;
+  float maxllhd = sig.second;
   limit=log ( sigllhd/bgllhd );
-  cout << "[BayesFactor] bgllhd=" << bgllhd << ", signal=" << sigllhd << ", lnK=" << limit << endl;
+  float significance = sqrt ( 2*log ( maxllhd / bgllhd ) );
+  cout << "[BayesFactor] bgllhd=" << bgllhd << ", signal=" << sigllhd 
+       << ", maxsigllhd=" << maxllhd << ", lnK=" << limit 
+       << ", sig=" << significance << endl;
   limitErr=0;
   hint=0;
   return true;

@@ -10,9 +10,7 @@
  */
 
 #include "HiggsAnalysis/CombinedLimit/interface/LimitAlgo.h"
-//#include <RooArgList.h>
-//#include <RooFitResult.h>
-//#include <boost/utility.hpp>
+#include <utility>
 
 class BayesFactor : public LimitAlgo {
 public:
@@ -30,12 +28,14 @@ protected:
 private:
   float getLikelihood ( RooWorkspace *, const RooStats::ModelConfig *, 
                  RooAbsData &, float r ) const ;
-  /// integrate out signal strength mu
-  float signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig *mc_s, 
-                 RooAbsData &, float max ) const;
+  /// integrate out signal strength mu,
+  /// report integral (.first) *and* maximum (.second)
+  std::pair < float, float > signalIntegralOverMu ( RooWorkspace *w, 
+      RooStats::ModelConfig *mc_s, RooAbsData &, float max ) const;
 
   //true: nuisances are marginalized, false: nuisances are treated w/ CascadeMinimizer
   static bool  marginalizeNuisances_;
+  static bool  bgOnly_; // only compute likelihood of background
   static float muMax_; //maximum signal strength that we scan
 };
 
