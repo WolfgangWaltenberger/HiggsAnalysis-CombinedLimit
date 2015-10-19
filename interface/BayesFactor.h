@@ -32,19 +32,19 @@ private:
   /// maximize the signal strength, taken from MaxLikelihoodfit
   RooRealVar * computeSignalStrength ( RooWorkspace *, RooStats::ModelConfig *mc_s, 
                                RooAbsData & ) const;
-  float getLikelihood ( RooWorkspace *, const RooStats::ModelConfig *, 
-                 RooAbsData &, float r ) const ;
+  double getNLL ( RooWorkspace *, const RooStats::ModelConfig *, 
+                 RooAbsData &, double r ) const ;
   /// integrate out signal strength mu,
   /// report integral (.first) *and* maximum (.second)
-  std::pair < float, float > signalIntegralOverMu ( RooWorkspace *w, 
-      RooStats::ModelConfig *mc_s, RooAbsData &, float max ) const;
+  std::pair < double, double > signalIntegralOverMu ( RooWorkspace *w, 
+      RooStats::ModelConfig *mc_s, RooAbsData &, double max ) const;
 
   //true: nuisances are marginalized, false: nuisances are treated w/ CascadeMinimizer
   static bool  marginalizeNuisances_;
   static bool  bgOnly_; // only compute likelihood of background
-  static float muMax_; //maximum signal strength that we scan
+  static double muMax_; //maximum signal strength that we scan
   static int   minimizerStrategy_;
-  static float preFitValue_; // value of mu before the fit
+  static double preFitValue_; // value of mu before the fit
   // static std::vector < std::string > addDataCards_; // add datacards with more signals
 };
 

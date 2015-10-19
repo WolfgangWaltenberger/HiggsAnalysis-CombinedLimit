@@ -13,9 +13,9 @@ using namespace std;
 
 bool  BayesFactor::marginalizeNuisances_ = false;
 bool  BayesFactor::bgOnly_ = false;
-float BayesFactor::muMax_ = 2.0;
+double BayesFactor::muMax_ = 2.0;
 int   BayesFactor::minimizerStrategy_  = 1;
-float BayesFactor::preFitValue_ = 1.0;
+double BayesFactor::preFitValue_ = 1.0;
 // std::vector < std::string > BayesFactor::addDataCards_;
 
 BayesFactor::BayesFactor() :
@@ -26,8 +26,8 @@ BayesFactor::BayesFactor() :
   ("bgOnly",  "Compute background likelihood only")
 //  ("addDataCards",        boost::program_options::value< vector < string > >(&addDataCards_)->multitoken(), "additional datacards, should only vary in signal hypothesis" )
   ("minimizerStrategy",  boost::program_options::value<int>(&minimizerStrategy_)->default_value(minimizerStrategy_),      "Stragegy for minimizer")
-  ("preFitValue",        boost::program_options::value<float>(&preFitValue_)->default_value(preFitValue_),  "Value of signal strength pre-fit")
-  ("muMax",        boost::program_options::value<float>(&muMax_)->default_value(muMax_), "maximum value of signal strength mu that is scanned");
+  ("preFitValue",        boost::program_options::value<double>(&preFitValue_)->default_value(preFitValue_),  "Value of signal strength pre-fit")
+  ("muMax",        boost::program_options::value<double>(&muMax_)->default_value(muMax_), "maximum value of signal strength mu that is scanned");
 }
 
 BayesFactor::~BayesFactor(){
@@ -39,8 +39,8 @@ void BayesFactor::applyOptions(const boost::program_options::variables_map &vm)
   bgOnly_ = vm.count("bgOnly");
 }
 
-float BayesFactor::getLikelihood ( RooWorkspace * w,
-    const RooStats::ModelConfig * mc, RooAbsData & data, float r ) const
+double BayesFactor::getNLL ( RooWorkspace * w,
+    const RooStats::ModelConfig * mc, RooAbsData & data, double r ) const
 {
   const RooArgSet * nuisances = w->set( "nuisances" );
   const RooArgSet * observables = w->set( "observables" );
@@ -57,7 +57,7 @@ float BayesFactor::getLikelihood ( RooWorkspace * w,
   {
     // cout << "[BayesFactor] marginalizeNuisances!" << endl;
     RooAbsPdf * projectedpdf = bgpdf->createProjection ( *nuisances );
-    float ret = projectedpdf->getVal( *observables);
+    double ret = projectedpdf->getVal( *observables);
     //cout << "[BayesFactor] projectedpdf= " << ret << endl;
     delete projectedpdf;
     return ret;
@@ -66,12 +66,13 @@ float BayesFactor::getLikelihood ( RooWorkspace * w,
   CascadeMinimizer minim(*nll, CascadeMinimizer::Constrained);
   minim.setNuisanceParameters ( nuisances );
   minim.minimize( 0 );
-  float ret = exp ( -nll->getVal() );
+  double ret = nll->getVal();
+  //double ret = exp ( -nll->getVal() );
   delete nll;
   return ret;
 }
 
-pair < float, float > BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig *mc_s, RooAbsData & data, float max ) const
+pair < double, double > BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig *mc_s, RooAbsData & data, double max ) const
 {
   RooRealVar * rrv = w->var("r");
   const RooArgSet * nuisances = w->set( "nuisances" );
@@ -82,23 +83,23 @@ pair < float, float > BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooSt
   CascadeMinimizer minim(*nll, CascadeMinimizer::Constrained );
   minim.setNuisanceParameters ( nuisances );
   minim.minimize( 0 );
-  float sum = 0.;
-  float mmaxllhd=-1.;
+  double sum = 0.;
+  double mmaxllhd=-1.;
   int nStepsMu_ = 20;
-  float min = 0.;
-  float lastllhd = 0.;
+  double min = 0.;
+  double lastllhd = 0.;
   for ( int i = 0; i < nStepsMu_; i++ )
   {
-    float mu = min + (max-min) * float(i) / (nStepsMu_-1);
-    lastllhd = this->getLikelihood ( w, mc_s, data, mu );
+    double mu = min + (max-min) * double(i) / (nStepsMu_-1);
+    lastllhd = exp ( -this->getNLL ( w, mc_s, data, mu ) );
     sum += lastllhd;
     if ( lastllhd > mmaxllhd )
     {
       mmaxllhd=lastllhd;
     }
   }
-  float sigllhd = sum / nStepsMu_;
-  float maxl=0.01 * sigllhd;
+  double sigllhd = sum / nStepsMu_;
+  double maxl=0.01 * sigllhd;
 
   if ( lastllhd > maxl )
   {
@@ -106,7 +107,7 @@ pair < float, float > BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooSt
          << lastllhd << ">" << maxl << ". Consider choosing a larger mumax value."
          << endl;
   }
-  float minl=1e-10 * sigllhd;
+  double minl=1e-10 * sigllhd;
   if ( lastllhd < minl )
   {
     cout << "[BayesFactor:error] the llhd of the last mu bin is very small: "
@@ -114,7 +115,7 @@ pair < float, float > BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooSt
          << endl;
   }
 
-  return pair < float, float > ( sigllhd, mmaxllhd );
+  return pair < double, double > ( sigllhd, mmaxllhd );
 }
 
 RooRealVar * BayesFactor::computeSignalStrength ( RooWorkspace *w, 
@@ -153,20 +154,20 @@ RooRealVar * BayesFactor::computeSignalStrength ( RooWorkspace *w,
 
 bool BayesFactor::run(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStats::ModelConfig *mc_b, RooAbsData &data, double &limit, double &limitErr, const double *hint)
 {
-  float bgllhd = this->getLikelihood ( w, mc_b, data, -1 );
+  double bgNLL = this->getNLL ( w, mc_b, data, -1 );
   if (bgOnly_)
   {
-    cout << "[BayesFactor:result] bgllhd=" << bgllhd << endl;
-    limit=bgllhd;
+    cout << "[BayesFactor:result] bgNLL=" << bgNLL << endl;
+    limit=bgNLL;
     return true;
   }
-  pair <float,float> sig = this->signalIntegralOverMu ( w, mc_s, data, muMax_ );
-  float sigllhd = sig.first;
-  float maxllhd = sig.second;
-  limit=log ( sigllhd/bgllhd );
-  float significance = sqrt ( 2*log ( maxllhd / bgllhd ) );
+  pair <double,double> sig = this->signalIntegralOverMu ( w, mc_s, data, muMax_ );
+  double sigllhd = sig.first;
+  double maxllhd = sig.second;
+  limit=log ( sigllhd ) + bgNLL;
+  double significance = sqrt ( 2*(log ( maxllhd ) + bgNLL ) );
   RooRealVar * mu = this->computeSignalStrength ( w, mc_s, data );
-  cout << "[BayesFactor:result] bgllhd=" << bgllhd << ", signal=" << sigllhd
+  cout << "[BayesFactor:result] bgNLL=" << bgNLL << ", signal=" << sigllhd
        << ", maxsigllhd=" << maxllhd << ", lnK=" << limit
        << ", sig=" << significance << ", mu=" << mu->getVal()
        << ", muerr=" << mu->getError()
