@@ -72,7 +72,7 @@ double BayesFactor::getNLL ( RooWorkspace * w,
   return ret;
 }
 
-pair < double, double > BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig *mc_s, RooAbsData & data, double max ) const
+pair < long double, long double > BayesFactor::signalIntegralOverMu ( RooWorkspace *w, RooStats::ModelConfig *mc_s, RooAbsData & data, double max ) const
 {
   RooRealVar * rrv = w->var("r");
   const RooArgSet * nuisances = w->set( "nuisances" );
@@ -83,23 +83,30 @@ pair < double, double > BayesFactor::signalIntegralOverMu ( RooWorkspace *w, Roo
   CascadeMinimizer minim(*nll, CascadeMinimizer::Constrained );
   minim.setNuisanceParameters ( nuisances );
   minim.minimize( 0 );
-  double sum = 0.;
-  double mmaxllhd=-1.;
+  long double sum = 0.;
+  long double mmaxllhd=-1.;
+  // double maxnll = -9e99;
   int nStepsMu_ = 20;
-  double min = 0.;
-  double lastllhd = 0.;
+  long double min = 0.;
+  long double lastllhd = 0.;
   for ( int i = 0; i < nStepsMu_; i++ )
   {
-    double mu = min + (max-min) * double(i) / (nStepsMu_-1);
-    lastllhd = exp ( -this->getNLL ( w, mc_s, data, mu ) );
+    long double mu = min + (max-min) * double(i) / (nStepsMu_-1);
+    long double nll = this->getNLL ( w, mc_s, data, mu );
+    /*
+    if ( nll > maxnll )
+    {
+      maxnll=nll;
+    } */
+    lastllhd = expl ( - nll );
     sum += lastllhd;
     if ( lastllhd > mmaxllhd )
     {
       mmaxllhd=lastllhd;
     }
   }
-  double sigllhd = sum / nStepsMu_;
-  double maxl=0.01 * sigllhd;
+  long double sigllhd = sum / nStepsMu_;
+  long double maxl=0.01 * sigllhd;
 
   if ( lastllhd > maxl )
   {
@@ -107,7 +114,7 @@ pair < double, double > BayesFactor::signalIntegralOverMu ( RooWorkspace *w, Roo
          << lastllhd << ">" << maxl << ". Consider choosing a larger mumax value."
          << endl;
   }
-  double minl=1e-10 * sigllhd;
+  long double minl=1e-10 * sigllhd;
   if ( lastllhd < minl )
   {
     cout << "[BayesFactor:error] the llhd of the last mu bin is very small: "
@@ -115,7 +122,7 @@ pair < double, double > BayesFactor::signalIntegralOverMu ( RooWorkspace *w, Roo
          << endl;
   }
 
-  return pair < double, double > ( sigllhd, mmaxllhd );
+  return pair < long double, long double > ( sigllhd, mmaxllhd );
 }
 
 RooRealVar * BayesFactor::computeSignalStrength ( RooWorkspace *w, 
@@ -161,9 +168,10 @@ bool BayesFactor::run(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStats::Mo
     limit=bgNLL;
     return true;
   }
-  pair <double,double> sig = this->signalIntegralOverMu ( w, mc_s, data, muMax_ );
-  double sigllhd = sig.first;
-  double maxllhd = sig.second;
+  pair < long double, long double> sig = this->signalIntegralOverMu ( w, mc_s, data, muMax_ );
+  long double sigllhd = sig.first;
+  long double maxllhd = sig.second;
+  // long double maxllhd = exp ( - maxnll );
   limit=log ( sigllhd ) + bgNLL;
   double significance = sqrt ( 2*(log ( maxllhd ) + bgNLL ) );
   RooRealVar * mu = this->computeSignalStrength ( w, mc_s, data );

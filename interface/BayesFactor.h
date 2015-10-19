@@ -36,7 +36,7 @@ private:
                  RooAbsData &, double r ) const ;
   /// integrate out signal strength mu,
   /// report integral (.first) *and* maximum (.second)
-  std::pair < double, double > signalIntegralOverMu ( RooWorkspace *w, 
+  std::pair < long double, long double > signalIntegralOverMu ( RooWorkspace *w, 
       RooStats::ModelConfig *mc_s, RooAbsData &, double max ) const;
 
   //true: nuisances are marginalized, false: nuisances are treated w/ CascadeMinimizer
