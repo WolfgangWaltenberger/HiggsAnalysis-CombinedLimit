@@ -170,21 +170,23 @@ bool BayesFactor::run(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStats::Mo
   }
   pair < long double, long double> sig = this->signalIntegralOverMu ( w, mc_s, data, muMax_ );
   long double sigllhd = sig.first;
-  long double maxllhdold = sig.second;
+  // long double maxllhdold = sig.second;
   // long double maxllhd = exp ( - maxnll );
   limit=log ( sigllhd ) + bgNLL;
   RooRealVar * mu = this->computeSignalStrength ( w, mc_s, data );
   long double maxllhd = this->getNLL ( w, mc_s, data, mu->getVal() );
   double significance = sqrt ( 2 * ( bgNLL - maxllhd )  );
-  double significanceold = sqrt ( 2*(log ( maxllhdold ) + bgNLL ) );
-  long double maxllhdm1 = this->getNLL ( w, mc_s, data, mu->getVal()-mu->getError() );
+  // double significanceold = sqrt ( 2*(log ( maxllhdold ) + bgNLL ) );
+  float mum1=mu->getVal()-mu->getError();
+  if (mum1 < 0.) { mum1 = 0.; };
+  long double maxllhdm1 = this->getNLL ( w, mc_s, data, mum1 );
   long double maxllhdp1 = this->getNLL ( w, mc_s, data, mu->getVal()+mu->getError() );
   cout << "[BayesFactor:result] bgNLL=" << bgNLL << ", signal=" << sigllhd
 //       << ", maxllhdold=" << maxllhdold << ", sigold=" << significanceold 
        << ", maxsigNLL=" << maxllhd << ", lnK=" << limit
        << ", maxsigNLLm1=" << maxllhdm1 << ", maxsigNLLp1=" << maxllhdp1
        << ", sig=" << significance << ", mu=" << mu->getVal()
-       << ", mu=" << mu->getVal() << ", muerr=" << mu->getError()
+       << ", muerr=" << mu->getError()
        << endl;
   limitErr=0;
   hint=0;
