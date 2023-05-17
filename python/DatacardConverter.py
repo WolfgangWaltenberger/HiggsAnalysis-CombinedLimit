@@ -1,0 +1,158 @@
+import ROOT as r
+import json, math
+from HiggsAnalysis.CombinedLimit.DatacardParser import *
+
+def checkBin(v):
+    
+    if v < 1E-10: return 0.
+    else: return v
+
+def convertCard(cardName, f, opts, outName, bbl):
+    
+    separateNormShape = True
+
+    card = {'channels': [], 'observations': [], 'measurements': [], 'version': '1.0.0'}
+
+    with open(cardName, 'r') as f:
+        dc = parseCard(f, opts)
+        sig = dc.signals[0]
+        for ich, chname in enumerate(dc.bins):
+            ch = {'name': chname, 'samples': []}
+            fdata = list(dc.shapeMap[chname].values())[0]
+            fname = fdata[0]
+            hnom = fdata[1]
+            hsys = fdata[2] if len(fdata) > 2 else None
+            fr = r.TFile(fname, 'READ')
+            for s in dc.processes:
+                hnomName = hnom.replace('$PROCESS', s)
+                h = fr.Get(hnomName)                
+                hInteg = h.Integral()
+                hData = [checkBin(h.GetBinContent(ib+1)) for ib in range(h.GetXaxis().GetNbins())]
+                hNorm = h.Clone('hNorm')
+                hNorm.Scale(1./hInteg)
+                hNormData = [checkBin(hNorm.GetBinContent(ib+1)) for ib in range(hNorm.GetXaxis().GetNbins())]
+                if h == None: continue
+                ch['samples'].append({})
+                data = []
+                nBins = h.GetXaxis().GetNbins()
+                for ib in range(nBins):
+                    data.append(checkBin(h.GetBinContent(ib+1)))
+                ch['samples'][-1]['name'] = s
+                ch['samples'][-1]['data'] = data
+                ch['samples'][-1]['modifiers'] = []
+            
+                if s == sig:
+                    ch['samples'][-1]['modifiers'].append({'data': None, 'name': 'r_'+sig, 'type': 'normfactor'})
+
+                for syst in dc.systs:
+                    systname = syst[0]
+                    systtype = syst[2]
+                    systdict = syst[4]
+                    systfact = systdict[chname][s]
+
+                    if systfact != 0.0:
+
+                        systIncl, systInclNorm = False, False
+                        if systtype in ['lnN', 'lnU']:
+                            if type(systfact) != list and abs(systfact-1.0) > 1E-5:
+                                systdata = {'name': systname}
+                                systdata['type'] = 'normsys'
+                                normsysup = systfact
+                                normsysdo = 1.0/systfact
+                                systdata['data'] = {'hi': normsysup, 'lo': normsysdo}
+                                systIncl = True
+                            elif type(systfact) is list:
+                                systdata = {'name': systname}
+                                systdata['type'] = 'normsys'
+                                normsysup = systfact[1]
+                                normsysdo = systfact[0]
+                                systdata['data'] = {'hi': normsysup, 'lo': normsysdo}
+                                systIncl = True
+                        elif systtype in ['shape'] and hsys:
+                            systdata = {'name': systname}
+                            systdata['type'] = 'histosys'
+                            hsysNameUp = hsys.replace('$PROCESS', s).replace('$SYSTEMATIC', systname+'Up')
+                            hsysNameDown = hsys.replace('$PROCESS', s).replace('$SYSTEMATIC', systname+'Down')
+                            hsysUp = fr.Get(hsysNameUp)
+                            hsysDown = fr.Get(hsysNameDown)
+                            hsysNormUp = hsysUp.Clone('hsysNormUp')
+                            hsysNormDown = hsysDown.Clone('hsysNormDown')
+                            hsysIntegUp = hsysUp.Integral()
+                            hsysIntegDown = hsysDown.Integral()
+                            hasNorm = bool(abs(hsysIntegUp-hsysIntegDown) > 1E-10)
+                            normUp = hsysIntegUp/hInteg
+                            normDown = hsysIntegDown/hInteg
+                            if separateNormShape:
+                                hsysUp.Scale(1./normUp)
+                                hsysDown.Scale(1./normDown)
+                            hsysNormUp.Scale(1./hsysIntegUp)
+                            hsysNormDown.Scale(1./hsysIntegDown)
+                            hsysDataUp = [checkBin(hsysUp.GetBinContent(ib+1)) for ib in range(hsysUp.GetXaxis().GetNbins())]
+                            hsysDataDown = [checkBin(hsysDown.GetBinContent(ib+1)) for ib in range(hsysDown.GetXaxis().GetNbins())]
+                            hsysNormDataUp = [checkBin(hsysNormUp.GetBinContent(ib+1)) for ib in range(hsysNormUp.GetXaxis().GetNbins())]
+                            hsysNormDataDown = [checkBin(hsysNormDown.GetBinContent(ib+1)) for ib in range(hsysNormDown.GetXaxis().GetNbins())]
+                            diffShapeUp, diffShapeDown = 0., 0.
+                            for ib in range(nBins):
+                                nup = abs(hsysNormDataUp[ib])+abs(hNormData[ib])
+                                vup = 2.*abs(hsysNormDataUp[ib]-hNormData[ib])
+                                diffShapeUp += vup/nup if nup > 0 else 0.
+                                ndown = abs(hsysNormDataDown[ib])+abs(hNormData[ib])
+                                vdown = 2.*abs(hsysNormDataDown[ib]-hNormData[ib])
+                                diffShapeDown += vdown/ndown if ndown > 0 else 0.
+                            hasShape = bool(diffShapeUp > 1E-10 and diffShapeDown > 1E-10)
+                            if systfact != 1.0:
+                                print('Warning: an additional shape normalization factor found')
+                                for ib in range(nBins):
+                                    hsysDataUp[ib] = checkBin((hsysDataUp[ib]-hData[ib])*systfact+hData[ib])
+                                    hsysDataDown[ib] = checkBin((hsysDataDown[ib]-hData[ib])*systfact+hData[ib])
+                            if hasNorm and separateNormShape:
+                                systInclNorm = True
+                                systdatanorm = {'name': systname}
+                                systdatanorm['type'] = 'normsys'
+                                systdatanorm['data'] = {'hi': normUp, 'lo': normDown}
+                            if hasShape or systInclNorm:
+                                systdata['data'] = {'hi_data': hsysDataUp, 'lo_data': hsysDataDown}
+                                systIncl = True
+
+                        if systIncl: 
+                            ch['samples'][-1]['modifiers'].append(systdata)
+                            if systInclNorm: ch['samples'][-1]['modifiers'].append(systdatanorm)
+
+                if chname in dc.binParFlags.keys() and dc.binParFlags[chname][1]:
+                    if bbl:
+                        systname = 'prop_bin'+chname
+                        systdata = {'name': systname}
+                        systdata['type'] = 'staterror'
+                        hstat = [h.GetBinError(ib+1) for ib in range(h.GetXaxis().GetNbins())]
+                        for iv in range(len(hstat)):
+                            if data[iv] < 1E-10: hstat[iv] = 0.
+                        systdata['data'] = hstat
+                        ch['samples'][-1]['modifiers'].append(systdata)
+                    else:
+                        systname = 'prop_bin'+chname+'_'+s
+                        systdata = {'name': systname}
+                        systdata['type'] = 'shapesys'
+                        hstat = [h.GetBinError(ib+1) for ib in range(h.GetXaxis().GetNbins())]
+                        for iv in range(len(hstat)):
+                            if data[iv] < 1E-10: hstat[iv] = 0.
+                        systdata['data'] = hstat
+                        ch['samples'][-1]['modifiers'].append(systdata)                        
+                
+                for rp in dc.rateParams.keys():
+                    specs = rp.split('AND')
+                    rpchan = specs[0]
+                    rpproc = specs[1]
+                    if chname == rpchan and s == rpproc:
+                        rpname = dc.rateParams[rp][0][0][0]
+                        ch['samples'][-1]['modifiers'].append({'data': None, 'name': rpname, 'type': 'normfactor'})
+            
+            hdata = fr.Get(hnom.replace('$PROCESS', 'data_obs'))
+            hobs = [hdata.GetBinContent(ib+1) for ib in range(hdata.GetXaxis().GetNbins())]
+            card['observations'].append({'name': chname, 'data': hobs})
+
+            card['channels'].append(ch)
+
+        par = {'bounds': [[-10.0, 10.0]], 'fixed': False, 'name': 'r_'+sig}
+        card['measurements'] = [{'config': {'parameters': [par], 'poi': 'r_'+sig}, 'name': 'meas'}]
+
+    json.dump(card, open(outName+'.json', 'w'), indent=4)
