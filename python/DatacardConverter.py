@@ -16,7 +16,7 @@ def convertCard(cardName, f, opts, outName, bbl, normshape):
         sig = dc.signals[0]
         for ich, chname in enumerate(dc.bins):
             ch = {'name': chname, 'samples': []}
-            fdata = dc.shapeMap[chname].values()[0]
+            fdata = list(dc.shapeMap[chname].values()[0])
             fname = fdata[0]
             hnom = fdata[1]
             hsys = fdata[2]
