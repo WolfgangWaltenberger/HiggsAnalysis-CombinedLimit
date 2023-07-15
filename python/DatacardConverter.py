@@ -7,9 +7,7 @@ def checkBin(v):
     if v < 1E-10: return 0.
     else: return v
 
-def convertCard(cardName, f, opts, outName, bbl):
-    
-    separateNormShape = True
+def convertCard(cardName, f, opts, outName, bbl, normshape):
 
     card = {'channels': [], 'observations': [], 'measurements': [], 'version': '1.0.0'}
 
@@ -18,10 +16,10 @@ def convertCard(cardName, f, opts, outName, bbl):
         sig = dc.signals[0]
         for ich, chname in enumerate(dc.bins):
             ch = {'name': chname, 'samples': []}
-            fdata = list(dc.shapeMap[chname].values())[0]
+            fdata = dc.shapeMap[chname].values()[0]
             fname = fdata[0]
             hnom = fdata[1]
-            hsys = fdata[2] if len(fdata) > 2 else None
+            hsys = fdata[2]
             fr = r.TFile(fname, 'READ')
             for s in dc.processes:
                 hnomName = hnom.replace('$PROCESS', s)
@@ -68,7 +66,7 @@ def convertCard(cardName, f, opts, outName, bbl):
                                 normsysdo = systfact[0]
                                 systdata['data'] = {'hi': normsysup, 'lo': normsysdo}
                                 systIncl = True
-                        elif systtype in ['shape'] and hsys:
+                        elif systtype in ['shape']:
                             systdata = {'name': systname}
                             systdata['type'] = 'histosys'
                             hsysNameUp = hsys.replace('$PROCESS', s).replace('$SYSTEMATIC', systname+'Up')
@@ -82,7 +80,7 @@ def convertCard(cardName, f, opts, outName, bbl):
                             hasNorm = bool(abs(hsysIntegUp-hsysIntegDown) > 1E-10)
                             normUp = hsysIntegUp/hInteg
                             normDown = hsysIntegDown/hInteg
-                            if separateNormShape:
+                            if normshape:
                                 hsysUp.Scale(1./normUp)
                                 hsysDown.Scale(1./normDown)
                             hsysNormUp.Scale(1./hsysIntegUp)
@@ -105,18 +103,21 @@ def convertCard(cardName, f, opts, outName, bbl):
                                 for ib in range(nBins):
                                     hsysDataUp[ib] = checkBin((hsysDataUp[ib]-hData[ib])*systfact+hData[ib])
                                     hsysDataDown[ib] = checkBin((hsysDataDown[ib]-hData[ib])*systfact+hData[ib])
-                            if hasNorm and separateNormShape:
-                                systInclNorm = True
-                                systdatanorm = {'name': systname}
+                            if hasNorm and normshape:
+                                systdatanorm = {'name': systname+'_splitns'}
                                 systdatanorm['type'] = 'normsys'
                                 systdatanorm['data'] = {'hi': normUp, 'lo': normDown}
-                            if hasShape or systInclNorm:
+                                systInclNorm = True
+                                systdata['name'] += '_splitns'
+                                systdata['data'] = {'hi_data': hsysDataUp, 'lo_data': hsysDataDown}
+                                systIncl = True                                
+                            if hasShape or not normshape:
                                 systdata['data'] = {'hi_data': hsysDataUp, 'lo_data': hsysDataDown}
                                 systIncl = True
 
                         if systIncl: 
                             ch['samples'][-1]['modifiers'].append(systdata)
-                            if systInclNorm: ch['samples'][-1]['modifiers'].append(systdatanorm)
+                        if systInclNorm: ch['samples'][-1]['modifiers'].append(systdatanorm)
 
                 if chname in dc.binParFlags.keys() and dc.binParFlags[chname][1]:
                     if bbl:
