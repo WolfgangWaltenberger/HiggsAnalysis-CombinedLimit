@@ -25,6 +25,7 @@ def convertCard(cardName, f, opts, outName, bbl, normshape):
                 hnomName = hnom.replace('$PROCESS', s)
                 h = fr.Get(hnomName)                
                 hInteg = h.Integral()
+                if hInteg < 1E-10: continue
                 hData = [checkBin(h.GetBinContent(ib+1)) for ib in range(h.GetXaxis().GetNbins())]
                 hNorm = h.Clone('hNorm')
                 hNorm.Scale(1./hInteg)
