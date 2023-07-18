@@ -99,7 +99,7 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
                                 ndown = abs(hsysNormDataDown[ib])+abs(hNormData[ib])
                                 vdown = 2.*abs(hsysNormDataDown[ib]-hNormData[ib])
                                 diffShapeDown += vdown/ndown if ndown > 0 else 0.
-                            hasShape = bool(diffShapeUp > 1E-10 and diffShapeDown > 1E-10) or options.prune
+                            hasShape = bool(diffShapeUp > 1E-10 and diffShapeDown > 1E-10) or prune
                             if systfact != 1.0:
                                 print('Warning: an additional shape normalization factor found')
                                 for ib in range(nBins):
