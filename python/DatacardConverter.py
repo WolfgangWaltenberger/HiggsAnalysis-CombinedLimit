@@ -7,7 +7,7 @@ def checkBin(v):
     if v < 1E-10: return 0.
     else: return v
 
-def convertCard(cardName, f, opts, outName, bbl, normshape):
+def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
 
     card = {'channels': [], 'observations': [], 'measurements': [], 'version': '1.0.0'}
 
@@ -99,7 +99,7 @@ def convertCard(cardName, f, opts, outName, bbl, normshape):
                                 ndown = abs(hsysNormDataDown[ib])+abs(hNormData[ib])
                                 vdown = 2.*abs(hsysNormDataDown[ib]-hNormData[ib])
                                 diffShapeDown += vdown/ndown if ndown > 0 else 0.
-                            hasShape = bool(diffShapeUp > 1E-10 and diffShapeDown > 1E-10)
+                            hasShape = bool(diffShapeUp > 1E-10 and diffShapeDown > 1E-10) or options.prune
                             if systfact != 1.0:
                                 print('Warning: an additional shape normalization factor found')
                                 for ib in range(nBins):
