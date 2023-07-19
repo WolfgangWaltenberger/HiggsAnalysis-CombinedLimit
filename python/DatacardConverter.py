@@ -14,6 +14,7 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
     with open(cardName, 'r') as f:
         dc = parseCard(f, opts)
         sig = dc.signals[0]
+        meas = []
         for ich, chname in enumerate(dc.bins):
             ch = {'name': chname, 'samples': []}
             fdata = list(dc.shapeMap[chname].values())[0]
@@ -148,6 +149,7 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
                     if chname == rpchan and s == rpproc:
                         rpname = dc.rateParams[rp][0][0][0]
                         ch['samples'][-1]['modifiers'].append({'data': None, 'name': rpname, 'type': 'normfactor'})
+                        meas.append({'name': rpname})
             
             hdata = fr.Get(hnom.replace('$PROCESS', 'data_obs'))
             hobs = [hdata.GetBinContent(ib+1) for ib in range(hdata.GetXaxis().GetNbins())]
@@ -157,5 +159,8 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
 
         par = {'bounds': [[-10.0, 10.0]], 'fixed': False, 'name': 'r_'+sig}
         card['measurements'] = [{'config': {'parameters': [par], 'poi': 'r_'+sig}, 'name': 'meas'}]
+        for m in meas:
+            par = {'bounds': [[-10.0, 10.0]], 'fixed': False, 'name': m['name']}
+            card['measurements'][0]['config']['parameters'].append(par)
 
     json.dump(card, open(outName+'.json', 'w'), indent=4)
