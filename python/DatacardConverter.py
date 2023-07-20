@@ -122,7 +122,7 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
                             ch['samples'][-1]['modifiers'].append(systdata)
                         if systInclNorm: ch['samples'][-1]['modifiers'].append(systdatanorm)
 
-                if chname in dc.binParFlags.keys() and dc.binParFlags[chname][1]:
+                if chname in dc.binParFlags.keys() and dc.binParFlags[chname][1] and dc.binParFlags[chname][0] >= 0:
                     if bbl:
                         systname = 'prop_bin'+chname
                         systdata = {'name': systname}
