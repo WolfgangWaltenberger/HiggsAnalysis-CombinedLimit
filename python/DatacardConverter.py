@@ -149,7 +149,12 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
                     if chname == rpchan and s == rpproc:
                         rpname = dc.rateParams[rp][0][0][0]
                         ch['samples'][-1]['modifiers'].append({'data': None, 'name': rpname, 'type': 'normfactor'})
-                        meas.append({'name': rpname})
+                        found = False
+                        for m in meas:
+                            if m['name'] == rpname:
+                                found = True
+                                break
+                        if not found: meas.append({'name': rpname})
             
             hdata = fr.Get(hnom.replace('$PROCESS', 'data_obs'))
             hobs = [hdata.GetBinContent(ib+1) for ib in range(hdata.GetXaxis().GetNbins())]
@@ -160,7 +165,7 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
         par = {'bounds': [[-10.0, 10.0]], 'fixed': False, 'name': 'r_'+sig}
         card['measurements'] = [{'config': {'parameters': [par], 'poi': 'r_'+sig}, 'name': 'meas'}]
         for m in meas:
-            par = {'bounds': [[-10.0, 10.0]], 'fixed': False, 'name': m['name']}
+            par = {'bounds': [[-10.0, 10.0]], 'fixed': False, 'name': m['name'], 'inits': [1.0]}
             card['measurements'][0]['config']['parameters'].append(par)
 
     json.dump(card, open(outName+'.json', 'w'), indent=4)
