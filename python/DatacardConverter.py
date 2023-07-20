@@ -58,8 +58,8 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
                                 systdata = {'name': systname}
                                 systdata['type'] = 'normsys'
                                 normsysup = systfact
-#                                normsysdo = 1.0/systfact
-                                normsysdo = 1.0-abs(systfact-1.0)
+                                normsysdo = 1.0/systfact
+#                                normsysdo = 1.0-abs(systfact-1.0)
                                 systdata['data'] = {'hi': normsysup, 'lo': normsysdo}
                                 systIncl = True
                             elif type(systfact) is list:
