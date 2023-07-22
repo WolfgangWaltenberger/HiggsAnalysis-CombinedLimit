@@ -48,6 +48,7 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
                     systname = syst[0]
                     systtype = syst[2]
                     systdict = syst[4]
+                    if s not in systdict[chname].keys(): continue
                     systfact = systdict[chname][s]
 
                     if systfact != 0.0:
