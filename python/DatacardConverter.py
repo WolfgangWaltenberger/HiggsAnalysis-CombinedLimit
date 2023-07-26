@@ -108,11 +108,11 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
                                     hsysDataUp[ib] = checkBin((hsysDataUp[ib]-hData[ib])*systfact+hData[ib])
                                     hsysDataDown[ib] = checkBin((hsysDataDown[ib]-hData[ib])*systfact+hData[ib])
                             if hasNorm and normshape:
-                                systdatanorm = {'name': systname+'_splitns'}
+                                systdatanorm = {'name': systname+'_mergedns'}
                                 systdatanorm['type'] = 'normsys'
                                 systdatanorm['data'] = {'hi': normUp, 'lo': normDown}
                                 systInclNorm = True
-                                systdata['name'] += '_splitns'
+                                systdata['name'] += '_mergedns'
                                 systdata['data'] = {'hi_data': hsysDataUp, 'lo_data': hsysDataDown}
                                 systIncl = True                                
                             if hasShape or not normshape:
