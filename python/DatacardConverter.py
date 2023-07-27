@@ -103,21 +103,26 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
                                 ndown = abs(hsysNormDataDown[ib])+abs(hNormData[ib])
                                 vdown = 2.*abs(hsysNormDataDown[ib]-hNormData[ib])
                                 diffShapeDown += vdown/ndown if ndown > 0 else 0.
-                            hasShape = bool(diffShapeUp > 1E-10 and diffShapeDown > 1E-10) or (not prune)
+                            hasShape = bool(diffShapeUp > 1E-10 and diffShapeDown > 1E-10) or prune
                             if systfact != 1.0:
                                 print('Warning: an additional shape normalization factor found')
                                 for ib in range(nBins):
                                     hsysDataUp[ib] = checkBin((hsysDataUp[ib]-hData[ib])*systfact+hData[ib])
                                     hsysDataDown[ib] = checkBin((hsysDataDown[ib]-hData[ib])*systfact+hData[ib])
-                            if hasNorm and normshape:
-                                systdatanorm = {'name': systname+'_mergedns'}
+                            if (hasNorm and normshape) or ('_splitns' in systname):
+                                systdatanorm = {'name': systname}
+                                if '_splitns' not in systname: systdatanorm['name'] += '_mergedns'
                                 systdatanorm['type'] = 'normsys'
                                 systdatanorm['data'] = {'hi': normUp, 'lo': normDown}
                                 systInclNorm = True
-                                systdata['name'] += '_mergedns'
-                                systdata['data'] = {'hi_data': hsysDataUp, 'lo_data': hsysDataDown}
-                                systIncl = True                                
-                            if hasShape or not normshape:
+                                if abs(sum(hsysNormDataUp)-sum(hsysNormDataDown)) > 1E-7:
+                                    if '_splitns' not in systname: systdata['name'] += '_mergedns'
+                                    else:
+                                        systdata['name'] = systdata['name'].replace('_splitns', '')
+                                        systdatanorm['name'] = systdatanorm['name'].replace('_splitns', '')
+                                    systdata['data'] = {'hi_data': hsysDataUp, 'lo_data': hsysDataDown}
+                                    systIncl = True                                    
+                            if hasShape:
                                 systdata['data'] = {'hi_data': hsysDataUp, 'lo_data': hsysDataDown}
                                 systIncl = True
 
