@@ -22,7 +22,9 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
             hnom = fdata[1]
             hsys = fdata[2]
             fr = r.TFile(fname, 'READ')
-            for s in dc.processes:
+            for k in dc.keyline:
+                if k[0] != chname: continue
+                s = k[1]
                 hnomName = hnom.replace('$PROCESS', s)
                 h = fr.Get(hnomName)                
                 hInteg = h.Integral()
@@ -55,7 +57,7 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
 
                         systIncl, systInclNorm = False, False
                         if systtype in ['lnN', 'lnU']:
-                            if type(systfact) != list and abs(systfact-1.0) > 1E-5:
+                            if type(systfact) != list and abs(systfact-1.0) > 1E-10:
                                 systdata = {'name': systname}
                                 systdata['type'] = 'normsys'
                                 normsysup = systfact
