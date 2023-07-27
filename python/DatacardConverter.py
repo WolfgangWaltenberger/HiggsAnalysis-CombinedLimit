@@ -115,7 +115,8 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
                                 systdatanorm['type'] = 'normsys'
                                 systdatanorm['data'] = {'hi': normUp, 'lo': normDown}
                                 systInclNorm = True
-                                if abs(sum(hsysNormDataUp)-sum(hsysNormDataDown)) > 1E-7:
+#                                if abs(sum(hsysNormDataUp)-sum(hsysNormDataDown)) > 1E-7:
+                                if True:
                                     if '_splitns' not in systname: systdata['name'] += '_mergedns'
                                     else:
                                         systdata['name'] = systdata['name'].replace('_splitns', '')
