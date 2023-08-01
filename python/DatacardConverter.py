@@ -2,12 +2,12 @@ import ROOT as r
 import json, math
 from HiggsAnalysis.CombinedLimit.DatacardParser import *
 
-def checkBin(v):
+def checkBin(v, neg):
     
-    if v < 1E-10: return 0.
+    if v < 1E-10 and neg: return 0.
     else: return v
 
-def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
+def convertCard(cardName, f, opts, outName, bbl, normshape, prune, neg):
 
     card = {'channels': [], 'observations': [], 'measurements': [], 'version': '1.0.0'}
 
@@ -29,16 +29,16 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
                 h = fr.Get(hnomName)                
                 hInteg = h.Integral()
                 if hInteg < 1E-10: continue
-                hData = [checkBin(h.GetBinContent(ib+1)) for ib in range(h.GetXaxis().GetNbins())]
+                hData = [checkBin(h.GetBinContent(ib+1), neg) for ib in range(h.GetXaxis().GetNbins())]
                 hNorm = h.Clone('hNorm')
                 hNorm.Scale(1./hInteg)
-                hNormData = [checkBin(hNorm.GetBinContent(ib+1)) for ib in range(hNorm.GetXaxis().GetNbins())]
+                hNormData = [checkBin(hNorm.GetBinContent(ib+1), neg) for ib in range(hNorm.GetXaxis().GetNbins())]
                 if h == None: continue
                 ch['samples'].append({})
                 data = []
                 nBins = h.GetXaxis().GetNbins()
                 for ib in range(nBins):
-                    data.append(checkBin(h.GetBinContent(ib+1)))
+                    data.append(checkBin(h.GetBinContent(ib+1), neg))
                 ch['samples'][-1]['name'] = s
                 ch['samples'][-1]['data'] = data
                 ch['samples'][-1]['modifiers'] = []
@@ -86,15 +86,15 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
                             hasNorm = bool(abs(hsysIntegUp-hsysIntegDown) > 1E-10)
                             normUp = hsysIntegUp/hInteg
                             normDown = hsysIntegDown/hInteg
-                            if normshape:
+                            if normshape or '_splitns' in systname:
                                 hsysUp.Scale(1./normUp)
                                 hsysDown.Scale(1./normDown)
                             hsysNormUp.Scale(1./hsysIntegUp)
                             hsysNormDown.Scale(1./hsysIntegDown)
-                            hsysDataUp = [checkBin(hsysUp.GetBinContent(ib+1)) for ib in range(hsysUp.GetXaxis().GetNbins())]
-                            hsysDataDown = [checkBin(hsysDown.GetBinContent(ib+1)) for ib in range(hsysDown.GetXaxis().GetNbins())]
-                            hsysNormDataUp = [checkBin(hsysNormUp.GetBinContent(ib+1)) for ib in range(hsysNormUp.GetXaxis().GetNbins())]
-                            hsysNormDataDown = [checkBin(hsysNormDown.GetBinContent(ib+1)) for ib in range(hsysNormDown.GetXaxis().GetNbins())]
+                            hsysDataUp = [checkBin(hsysUp.GetBinContent(ib+1), neg) for ib in range(hsysUp.GetXaxis().GetNbins())]
+                            hsysDataDown = [checkBin(hsysDown.GetBinContent(ib+1), neg) for ib in range(hsysDown.GetXaxis().GetNbins())]
+                            hsysNormDataUp = [checkBin(hsysNormUp.GetBinContent(ib+1), neg) for ib in range(hsysNormUp.GetXaxis().GetNbins())]
+                            hsysNormDataDown = [checkBin(hsysNormDown.GetBinContent(ib+1), neg) for ib in range(hsysNormDown.GetXaxis().GetNbins())]
                             diffShapeUp, diffShapeDown = 0., 0.
                             for ib in range(nBins):
                                 nup = abs(hsysNormDataUp[ib])+abs(hNormData[ib])
@@ -103,12 +103,13 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
                                 ndown = abs(hsysNormDataDown[ib])+abs(hNormData[ib])
                                 vdown = 2.*abs(hsysNormDataDown[ib]-hNormData[ib])
                                 diffShapeDown += vdown/ndown if ndown > 0 else 0.
-                            hasShape = bool(diffShapeUp > 1E-10 and diffShapeDown > 1E-10) or prune
+                            hasShape = bool(diffShapeUp > 1E-4 and diffShapeDown > 1E-4) or prune
+                            isFake = (len(hsysDataUp) == 1 and abs(hsysDataUp[0]-hsysDataDown[0]) < 1E-4)
                             if systfact != 1.0:
                                 print('Warning: an additional shape normalization factor found')
                                 for ib in range(nBins):
-                                    hsysDataUp[ib] = checkBin((hsysDataUp[ib]-hData[ib])*systfact+hData[ib])
-                                    hsysDataDown[ib] = checkBin((hsysDataDown[ib]-hData[ib])*systfact+hData[ib])
+                                    hsysDataUp[ib] = checkBin((hsysDataUp[ib]-hData[ib])*systfact+hData[ib], neg)
+                                    hsysDataDown[ib] = checkBin((hsysDataDown[ib]-hData[ib])*systfact+hData[ib], neg)
                             if (hasNorm and normshape) or ('_splitns' in systname):
                                 systdatanorm = {'name': systname}
                                 if '_splitns' not in systname: systdatanorm['name'] += '_mergedns'
@@ -119,17 +120,19 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune):
                                 if True:
                                     if '_splitns' not in systname: systdata['name'] += '_mergedns'
                                     else:
-                                        systdata['name'] = systdata['name'].replace('_splitns', '')
                                         systdatanorm['name'] = systdatanorm['name'].replace('_splitns', '')
-                                    systdata['data'] = {'hi_data': hsysDataUp, 'lo_data': hsysDataDown}
-                                    systIncl = True                                    
+                                        if hasShape and not isFake:
+                                            systdata['name'] = systdata['name'].replace('_splitns', '')
+                                            systdata['data'] = {'hi_data': hsysDataUp, 'lo_data': hsysDataDown}
+                                    systIncl = True
                             if hasShape:
                                 systdata['data'] = {'hi_data': hsysDataUp, 'lo_data': hsysDataDown}
                                 systIncl = True
 
                         if systIncl: 
-                            ch['samples'][-1]['modifiers'].append(systdata)
-                        if systInclNorm: ch['samples'][-1]['modifiers'].append(systdatanorm)
+                            if 'data' in systdata.keys():
+                                ch['samples'][-1]['modifiers'].append(systdata)
+                        if systInclNorm and abs(systdatanorm['data']['hi']-systdatanorm['data']['lo']) > 1E-4: ch['samples'][-1]['modifiers'].append(systdatanorm)
 
                 if chname in dc.binParFlags.keys() and dc.binParFlags[chname][1] and dc.binParFlags[chname][0] >= 0:
                     if bbl:

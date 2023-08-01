@@ -9,6 +9,7 @@ parser.add_option("-o", "--out", default="output", type="string", help="output f
 parser.add_option("--bbl", action="store_true", help="use Barlow-Beeston lite approach for statistical uncertainties")
 parser.add_option("--normshape", action="store_true", help="split shape uncertainties into pure shape and normalization components")
 parser.add_option("--prune", action="store_true", help="remove shape systematics with no effect")
+parser.add_option("--neg", action="store_true", help="remove negative predictions in bins")
 (options, args) = parser.parse_args()
 
 if len(args) == 0:
@@ -18,4 +19,4 @@ if len(args) == 0:
 opts = type("opts", (object,), dict(bin=True, noJMax=False, stat=False, nuisancesToExclude=[], allowNoSignal=True, allowNoBackground=True))
     
 file = open(args[0], "r")
-convertCard(args[0], file, opts, options.out, options.bbl, options.normshape, options.prune)
+convertCard(args[0], file, opts, options.out, options.bbl, options.normshape, options.prune, options.neg)
