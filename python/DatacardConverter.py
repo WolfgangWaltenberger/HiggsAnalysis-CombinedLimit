@@ -10,6 +10,8 @@ def checkBin(v, neg):
 def convertCard(cardName, f, opts, outName, bbl, normshape, prune, neg):
 
     card = {'channels': [], 'observations': [], 'measurements': [], 'version': '1.0.0'}
+    
+    zer = 1E-20
 
     with open(cardName, 'r') as f:
         dc = parseCard(f, opts)
@@ -38,7 +40,7 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune, neg):
                 data = []
                 nBins = h.GetXaxis().GetNbins()
                 for ib in range(nBins):
-                    data.append(checkBin(h.GetBinContent(ib+1), neg))
+                    data.append(checkBin(h.GetBinContent(ib+1)+zer, neg))
                 ch['samples'][-1]['name'] = s
                 ch['samples'][-1]['data'] = data
                 ch['samples'][-1]['modifiers'] = []
