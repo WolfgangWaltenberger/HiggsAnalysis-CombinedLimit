@@ -1,4 +1,5 @@
 import ROOT as r
+import os
 import json, math
 from HiggsAnalysis.CombinedLimit.DatacardParser import *
 
@@ -6,6 +7,14 @@ def checkBin(v, neg):
     
     if v < 1E-10 and neg: return 0.
     else: return v
+
+oldMessages = set()
+
+def msg ( msg : str ):
+    if msg in oldMessages:
+        return
+    oldMessages.add ( msg )
+    print ( f"[DatacardConverter] {msg}" )
 
 def convertCard(cardName, f, opts, outName, bbl, normshape, prune, neg):
 
@@ -20,7 +29,11 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune, neg):
         for ich, chname in enumerate(dc.bins):
             ch = {'name': chname, 'samples': []}
             fdata = list(dc.shapeMap[chname].values())[0]
+            if len(fdata)<2:
+                msg ( f"skipping {fdata} in {(cardName)}" )
+                continue
             fname = fdata[0]
+            
             hnom = fdata[1]
             hsys = fdata[2]
             fr = r.TFile(fname, 'READ')
