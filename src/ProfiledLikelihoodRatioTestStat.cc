@@ -13,7 +13,9 @@ Double_t ProfiledLikelihoodRatioTestStat::Evaluate(RooAbsData& data, RooArgSet& 
     *paramsNull_ = nuisances_;
     *paramsNull_ = snapNull_;
     *paramsNull_ = nullPOI;
+    return -99; // FIXME
 
+    /*
     pdfNull_->fitTo(data, RooFit::Constrain(nuisances_), RooFit::Hesse(0), RooFit::PrintLevel(-1), RooFit::PrintEvalErrors(-1));
     double nullNLL = pdfNull_->getVal();
 
@@ -25,5 +27,6 @@ Double_t ProfiledLikelihoodRatioTestStat::Evaluate(RooAbsData& data, RooArgSet& 
 
     double altNLL = pdfAlt_->getVal();
     return -log(nullNLL/altNLL);
+    */
 }
 

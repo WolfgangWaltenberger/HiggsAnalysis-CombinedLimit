@@ -4026,7 +4026,7 @@ ClassImp(RooCPSHighMassGGH)
    TComplex Exp2 = MSquared.Exp(-(TComplex)alpha);
    TComplex Exp3 = MSquared.Exp(-x*(TComplex)alpha/M);
 
-   double interference = -r*(1-TMath::Exp(-beta*(x-150.)/mH_eff))*((Exp1/(x-M)-Exp2/(x+M))*Exp3).Re();
+   double interference = -r*(1-TMath::Exp(-beta*(x-150.)/mH_eff))*((Exp1/((TComplex) x-(TComplex) M)-Exp2/((TComplex) x+(TComplex) M))*Exp3).Re();
 
    Double_t fValue = signal + IntStr*interference/( TMath::Sqrt(1-BRnew) );
    if (fValue > 0) return fValue;
@@ -4666,7 +4666,7 @@ ClassImp(RooBWHighMassGGH)
    TComplex Exp2 = MSquared.Exp(-(TComplex)alpha);
    TComplex Exp3 = MSquared.Exp(-x*(TComplex)alpha/M);
 
-   double interference = -r*(1-TMath::Exp(-beta*(x-150.)/mH_eff))*((Exp1/(x-M)-Exp2/(x+M))*Exp3).Re();
+   double interference = -r*(1-TMath::Exp(-beta*(x-150.)/mH_eff))*((Exp1/((TComplex) x-(TComplex) M)-Exp2/((TComplex) x+(TComplex) M))*Exp3).Re();
 
    Double_t fValue = signal + IntStr*interference/( TMath::Sqrt(1-BRnew) );
    if (fValue > 0) return fValue;
@@ -6569,7 +6569,7 @@ ClassImp(RooCPSHighMassVBF)
    TComplex Exp2 = MSquared.Exp(-(TComplex)alpha);
    TComplex Exp3 = MSquared.Exp(-x*(TComplex)alpha/M);
 
-   double interference = -r*(1-TMath::Exp(-beta*(x-150.)/mH_eff))*((Exp1/(x-M)-Exp2/(x+M))*Exp3).Re();
+   double interference = -r*(1-TMath::Exp(-beta*(x-150.)/mH_eff))*((Exp1/((TComplex) x-(TComplex) M)-Exp2/((TComplex) x+(TComplex) M))*Exp3).Re();
 
    Double_t fValue = signal*(1+IntStr*interference/(bwHM*( TMath::Sqrt(1-BRnew) ))); 
    if (fValue > 0) return fValue;
@@ -7661,7 +7661,7 @@ ClassImp(RooSigPlusInt)
    TComplex Exp2 = MSquared.Exp(-(TComplex)alpha);
    TComplex Exp3 = MSquared.Exp(-x*(TComplex)alpha/M);
 
-   double interference = -r*sqrt(1/1-BRnew)*(1-TMath::Exp(-beta*(x-150.)/mH_eff))*((Exp1/(x-M)-Exp2/(x+M))*Exp3).Re();
+   double interference = -r*sqrt(1/1-BRnew)*(1-TMath::Exp(-beta*(x-150.)/mH_eff))*((Exp1/((TComplex) x-(TComplex) M)-Exp2/((TComplex) x+(TComplex) M))*Exp3).Re();
 
    return signal + interference;   
    

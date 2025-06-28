@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+import sys, os
+sys.path.insert(0,f"{os.environ['HOME']}/git/combine2pyhf" )
+sys.path.insert(0,f"{os.environ['HOME']}/git/" )
+
 import json
 from optparse import OptionParser
 from HiggsAnalysis.CombinedLimit.DatacardConverter import *
