@@ -41,7 +41,7 @@ else ifeq ($(LCG), 1)
 CCFLAGS += -I ${CPLUS_INCLUDE_PATH}/eigen3
 LIBS += -L${CPLUS_INCLUDE_PATH}/../lib
 else
-CCFLAGS += -I$(BOOST)/include -I$(VDT)/include -I$(GSL)/include -I$(EIGEN)/include/eigen3 -I/usr/include/eigen3/Eigen/ 
+CCFLAGS += -I$(BOOST)/include -I$(VDT)/include -I$(GSL)/include -I$(EIGEN)/include/eigen3 -I/usr/include/eigen3/Eigen/ -I/usr/include/eigen3/
 LIBS += -L$(BOOST)/lib -L$(VDT)/lib -L$(GSL)/lib 
 endif 
 
