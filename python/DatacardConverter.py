@@ -28,6 +28,8 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune, neg):
         meas = []
         for ich, chname in enumerate(dc.bins):
             ch = {'name': chname, 'samples': []}
+            if not chname in dc.shapeMap:
+                continue
             fdata = list(dc.shapeMap[chname].values())[0]
             if len(fdata)<2:
                 msg ( f"skipping {fdata} in {(cardName)}" )
@@ -36,7 +38,12 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune, neg):
             
             hnom = fdata[1]
             hsys = fdata[2]
-            fr = r.TFile(fname, 'READ')
+            mfname = fname 
+            if not os.path.exists ( mfname ):
+                mfname = f"{os.path.dirname(cardName)}/{fname}"
+                print ( f"[DatacardConverter] could not find {fname}, trying {mfname}: {os.path.exists(mfname)}" )
+
+            fr = r.TFile(mfname, 'READ')
             for k in dc.keyline:
                 if k[0] != chname: continue
                 s = k[1]
@@ -195,4 +202,6 @@ def convertCard(cardName, f, opts, outName, bbl, normshape, prune, neg):
             par = {'bounds': [[-10.0, 10.0]], 'fixed': False, 'name': m['name'], 'inits': [1.0]}
             card['measurements'][0]['config']['parameters'].append(par)
 
-    json.dump(card, open(outName+'.json', 'w'), indent=4)
+    outFile = outName+'.json'
+    print ( f"[DatacardConverter] writing {outFile}" )
+    json.dump(card, open(outFile, 'w'), indent=4)
